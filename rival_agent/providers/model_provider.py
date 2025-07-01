@@ -447,7 +447,7 @@ class ModelProvider:
                 
         except Exception as e:
             self.logger.error(f"Error in query_stream: {e}")
-            yield f"Error: {str(e)}"
+            yield f"There was an error processing your request, please try again later. Error: {str(e)}"
 
     async def query(
         self,

@@ -63,6 +63,14 @@ class RivalAgent(AbstractAgent):
             )
             async for chunk in self.__process_search_results(query.prompt):
                 # Use the text stream to emit chunks of the final response to the client
+
+                if chunk.startswith("Error:"):
+                    # If the chunk indicates an error, emit it as a text block
+                    await response_handler.emit_text_block(
+                        "ERROR", f"❌ {chunk}"
+                    )
+                    await final_response_stream.complete()
+                    return
                 await final_response_stream.emit_chunk(chunk)
             
             # Mark the text stream as complete
