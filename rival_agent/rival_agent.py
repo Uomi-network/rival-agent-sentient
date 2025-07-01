@@ -54,19 +54,6 @@ class RivalAgent(AbstractAgent):
             await response_handler.emit_text_block(
                 "SEARCH", "🔍 Searching internet for results..."
             )
-            search_results = await self._search_provider.search(query.prompt)
-            
-            if len(search_results["results"]) > 0:
-                # Use response handler to emit JSON to the client
-                await response_handler.emit_json(
-                    "SOURCES", {"results": search_results["results"]}
-                )
-            if len(search_results["images"]) > 0:
-                # Use response handler to emit JSON to the client
-                await response_handler.emit_json(
-                    "IMAGES", {"images": search_results["images"]}
-                )
-
             # Process search results with blockchain AI
             await response_handler.emit_text_block(
                 "PROCESSING", "🧠 Processing with blockchain AI agent..."
@@ -76,7 +63,7 @@ class RivalAgent(AbstractAgent):
             final_response_stream = response_handler.create_text_stream(
                 "FINAL_RESPONSE"
             )
-            async for chunk in self.__process_search_results(query.prompt, search_results["results"]):
+            async for chunk in self.__process_search_results(query.prompt):
                 # Use the text stream to emit chunks of the final response to the client
                 await final_response_stream.emit_chunk(chunk)
             
@@ -94,18 +81,11 @@ class RivalAgent(AbstractAgent):
 
     async def __process_search_results(
             self,
-            prompt: str,
-            search_results: dict
+            prompt: str
     ) -> AsyncIterator[str]:
         """Process the search results using the blockchain AI model."""
         try:
-            process_query = f"""Based on the search results below, provide a comprehensive answer to the user's question.
-
-User Question: {prompt}
-
-Search Results: {search_results}
-
-Please provide a well-structured, informative response that synthesizes the search results to answer the user's question. Include relevant details and cite sources when appropriate."""
+            process_query = prompt
             
             async for chunk in self._model_provider.query_stream(process_query):
                 yield chunk
