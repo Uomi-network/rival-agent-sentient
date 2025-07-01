@@ -82,8 +82,8 @@ class RivalAgent(AbstractAgent):
     ) -> AsyncIterator[str]:
         """Process the search results using the blockchain AI model."""
         try:
-            logger.error(f"Processing search results with query: {prompt}")              
-            
+            logger.info(f"Processing search results with query: {prompt}")              
+
             async for chunk in self._model_provider.query_stream(prompt):
                 yield chunk
                 

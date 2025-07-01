@@ -359,7 +359,7 @@ class ModelProvider:
                         for event in events:
                             event_request_id = event.args.requestId
 
-                            self.logger.error(f"Checking event: {event.event} in block {event.blockNumber}")
+                            self.logger.info(f"Checking event: {event.event} in block {event.blockNumber}")
 
 
                             
@@ -549,12 +549,12 @@ class ModelProvider:
             # Mock mode
             return int(tx_hash[-8:], 16)
         
-        self.logger.error(f"Waiting for RequestAccepted event for transaction {tx_hash}...")
+        self.logger.info(f"Waiting for RequestAccepted event for transaction {tx_hash}...")
         try:
             start_time = time.time()
             latest_block = self.w3.eth.block_number - 5
 
-            self.logger.error(f"Latest block: {latest_block}")
+            self.logger.info(f"Latest block: {latest_block}")
             
             while time.time() - start_time < 30.0:  # 30 second timeout for acceptance
                 current_block = self.w3.eth.block_number
@@ -573,13 +573,13 @@ class ModelProvider:
                         events = event_filter.get_all_entries()
                         
                         for event in events:
-                            self.logger.error(f"Checking event: {event.event} in block {event.blockNumber}")
-                            self.logger.error(f"Event.transactionHash: {event.transactionHash.hex()}")
-                            self.logger.error(f"TX Hash: {tx_hash}")
+                            self.logger.info(f"Checking event: {event.event} in block {event.blockNumber}")
+                            self.logger.info(f"Event.transactionHash: {event.transactionHash.hex()}")
+                            self.logger.info(f"TX Hash: {tx_hash}")
                             # Check if this event is from our transaction
                             if event.transactionHash.hex() == tx_hash:
                                 request_id = event.args.requestId
-                                self.logger.error(f"Request accepted with ID: {request_id}")
+                                self.logger.info(f"Request accepted with ID: {request_id}")
                                 return request_id
                                 
                     except Exception as e:
@@ -600,9 +600,8 @@ class ModelProvider:
         """Listen for NodeOutputReceived event using substrate-interface"""
         if not self.account:
             # This is handled by mock events
-            return ""
-    
-        self.logger.error(f"Listening for NodeOutputReceived event with request_id {request_id}")
+            return ""        
+        self.logger.info(f"Listening for NodeOutputReceived event with request_id {request_id}")
         
         if not self.substrate:
             self.logger.error("Substrate interface not available")
@@ -631,7 +630,7 @@ class ModelProvider:
                                 events = self.substrate.get_events(block_hash)
                                 
                                 if events:
-                                    self.logger.error(f"Found {len(events)} events in block {block_num}")
+                                    self.logger.info(f"Found {len(events)} events in block {block_num}")
                                 
                                 for event in events:
 
@@ -654,7 +653,7 @@ class ModelProvider:
 
                                     # Check if this is our target event
                                     if event_id == 'NodeOutputReceived':
-                                        self.logger.error(f"Found NodeOutputReceived event in block {block_num}. Attributes: {event_data}")
+                                        self.logger.info(f"Found NodeOutputReceived event in block {block_num}. Attributes: {event_data}")
                                         
                                         # Extract event attributes
                                         event_request_id = None
@@ -667,7 +666,7 @@ class ModelProvider:
                                         output_data = event_data.get('output_data')
                                         account_id = event_data.get('account_id')
 
-                                        self.logger.error(f"Event attributes: requestId={event_request_id}, accountId={account_id}, outputData={output_data}")
+                                        self.logger.info(f"Event attributes: requestId={event_request_id}, accountId={account_id}, outputData={output_data}")
                                         
                                         # If this matches our request, return the output
                                         if event_request_id == request_id and output_data is not None:
