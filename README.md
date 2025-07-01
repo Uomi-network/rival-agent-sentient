@@ -62,8 +62,17 @@ pip install -e ".[dev]"
    BLOCKCHAIN_PRIVATE_KEY="0x..."
    CONTRACT_ADDRESS="0x609a8aeeef8b89be02c5b59a936a520547252824"
    NFT_ID="3"
+   
+   # Authentication (optional)
+   RIVAL_USE_AUTH="true"                    # Enable API key authentication
+   RIVAL_API_KEY="your-secure-api-key"      # Your API key for authentication
    ```
 
+3. **Generate a secure API key (optional):**
+   ```bash
+   python scripts/generate_api_key.py
+   ```
+   
 ## 🚀 Quick Start
 
 ### Command Line
@@ -267,6 +276,71 @@ pre-commit install
 
 # Run tests
 pytest
+```
+
+## 🔐 Authentication
+
+The Rival Agent supports optional API key authentication for production deployments.
+
+### Enabling Authentication
+
+1. **Generate a secure API key:**
+   ```bash
+   python scripts/generate_api_key.py
+   ```
+
+2. **Set environment variables:**
+   ```bash
+   export RIVAL_USE_AUTH=true
+   export RIVAL_API_KEY=your_generated_api_key
+   ```
+
+3. **Start the server:**
+   ```bash
+   rival-agent
+   ```
+
+### Making Authenticated Requests
+
+Include the API key in the Authorization header:
+
+```bash
+curl -X POST http://localhost:8000/assist \
+  -H "Authorization: Bearer your_api_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "session": {"processor_id": "user123"},
+    "query": "What is blockchain?"
+  }'
+```
+
+### Python Client Example
+
+```python
+import aiohttp
+import asyncio
+
+async def query_agent():
+    headers = {
+        "Authorization": "Bearer your_api_key",
+        "Content-Type": "application/json"
+    }
+    
+    data = {
+        "session": {"processor_id": "user123"},
+        "query": "Explain DeFi"
+    }
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            "http://localhost:8000/assist",
+            headers=headers,
+            json=data
+        ) as response:
+            async for line in response.content:
+                print(line.decode())
+
+asyncio.run(query_agent())
 ```
 
 ## 📄 License

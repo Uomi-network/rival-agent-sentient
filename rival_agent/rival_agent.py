@@ -9,6 +9,7 @@ from sentient_agent_framework import (
     Session,
     Query,
     ResponseHandler)
+from rival_agent.auth_server import AuthenticatedServer
 from typing import AsyncIterator
 import json
 
@@ -118,11 +119,19 @@ def main():
         logger.info(f"Contract: {status['blockchain_status']['contract_address']}")
         logger.info(f"NFT ID: {status['blockchain_status']['nft_id']}")
         
-        # Create a server to handle requests to the agent
-        server = DefaultServer(agent)
+        # Check if authentication is enabled
+        use_auth = os.getenv("RIVAL_USE_AUTH", "false").lower() in ["true", "1", "yes"]
+        
+        if use_auth:
+            # Create an authenticated server
+            server = AuthenticatedServer(agent)
+            logger.info("Starting Rival Agent server with authentication...")
+        else:
+            # Create a server to handle requests to the agent (no auth)
+            server = DefaultServer(agent)
+            logger.info("Starting Rival Agent server without authentication...")
         
         # Run the server
-        logger.info("Starting Rival Agent server...")
         server.run()
         
     except Exception as e:
