@@ -3,7 +3,6 @@ Rival Agent - A blockchain-powered AI agent with search capabilities.
 
 This package provides a production-ready AI agent that combines:
 - Blockchain AI model interactions via smart contracts
-- Internet search capabilities via Tavily API
 - Sentient Agent Framework integration
 
 Main Components:

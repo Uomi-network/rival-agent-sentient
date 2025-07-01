@@ -28,7 +28,6 @@ def mock_env_minimal():
     """Minimal environment variables for testing"""
     with patch.dict(os.environ, {
         'BLOCKCHAIN_RPC_URL': 'https://test-rpc.com',
-        'TAVILY_API_KEY': 'test-tavily-key',
         'CONTRACT_ADDRESS': '0x609a8aeeef8b89be02c5b59a936a520547252824',
         'NFT_ID': '3'
     }):
@@ -41,7 +40,6 @@ def mock_env_full():
     with patch.dict(os.environ, {
         'BLOCKCHAIN_RPC_URL': 'https://test-rpc.com',
         'BLOCKCHAIN_PRIVATE_KEY': '0x1234567890abcdef',
-        'TAVILY_API_KEY': 'test-tavily-key',
         'CONTRACT_ADDRESS': '0x609a8aeeef8b89be02c5b59a936a520547252824',
         'NFT_ID': '3',
         'HOST': '127.0.0.1',

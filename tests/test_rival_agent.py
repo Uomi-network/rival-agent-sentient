@@ -16,7 +16,6 @@ class TestRivalAgent:
         """Mock environment variables for testing"""
         with patch.dict(os.environ, {
             'BLOCKCHAIN_RPC_URL': 'https://test-rpc.com',
-            'TAVILY_API_KEY': 'test-tavily-key',
             'CONTRACT_ADDRESS': '0x609a8aeeef8b89be02c5b59a936a520547252824',
             'NFT_ID': '3'
         }):
@@ -38,13 +37,6 @@ class TestRivalAgent:
             with pytest.raises(ValueError, match="BLOCKCHAIN_RPC_URL is not set"):
                 RivalAgent()
 
-    def test_init_missing_tavily_key(self):
-        """Test initialization fails when TAVILY_API_KEY is missing"""
-        with patch.dict(os.environ, {
-            'BLOCKCHAIN_RPC_URL': 'https://test-rpc.com'
-        }, clear=True):
-            with pytest.raises(ValueError, match="TAVILY_API_KEY is not set"):
-                RivalAgent()
 
     @patch('rival_agent.rival_agent.ModelProvider')
     @patch('rival_agent.rival_agent.SearchProvider')

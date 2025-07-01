@@ -9,7 +9,6 @@ A blockchain-powered AI agent that combines internet search capabilities with sm
 ## 🚀 Features
 
 - **🔗 Blockchain AI Integration**: Submit queries to smart contracts and receive AI-generated responses
-- **🔍 Internet Search**: Real-time web search capabilities via Tavily API
 - **⚡ Streaming Responses**: Real-time response streaming for better user experience
 - **🔒 Secure Transaction Signing**: Support for private key management and transaction signing
 - **🧪 Mock Mode**: Test without real blockchain transactions
@@ -21,12 +20,12 @@ A blockchain-powered AI agent that combines internet search capabilities with sm
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   User Query    │───▶│   Rival Agent    │───▶│  Blockchain AI  │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │                        │
-                                ▼                        ▼
-                       ┌─────────────────┐    ┌─────────────────┐
-                       │ Internet Search │    │ Smart Contract  │
-                       │   (Tavily API)  │    │   (callAgent)   │
-                       └─────────────────┘    └─────────────────┘
+                                                         │
+                                                         ▼
+                                              ┌─────────────────┐
+                                              │ Smart Contract  │
+                                              │   (callAgent)   │
+                                              └─────────────────┘
 ```
 
 ## 📦 Installation
@@ -34,16 +33,16 @@ A blockchain-powered AI agent that combines internet search capabilities with sm
 ### From Source
 
 ```bash
-git clone https://github.com/your-org/rival-agent.git
-cd rival-agent
+git clone https://github.com/Uomi-Network/rival-agent-sentient.git
+cd rival-agent-sentient
 pip install -e .
 ```
 
 ### Development Installation
 
 ```bash
-git clone https://github.com/your-org/rival-agent.git
-cd rival-agent
+git clone https://github.com/Uomi-Network/rival-agent-sentient.git
+cd rival-agent-sentient
 pip install -e ".[dev]"
 ```
 
@@ -58,7 +57,6 @@ pip install -e ".[dev]"
    ```bash
    # Required
    BLOCKCHAIN_RPC_URL="https://your-rpc-endpoint.com"
-   TAVILY_API_KEY="your-tavily-api-key"
    
    # Optional for testing (uses mock mode if not provided)
    BLOCKCHAIN_PRIVATE_KEY="0x..."
@@ -103,15 +101,11 @@ async def main():
         nft_id=3
     )
     
-    search_provider = SearchProvider(api_key="your-tavily-key")
-    
+     
     # Query blockchain AI
     response = await model_provider.query("What is DeFi?")
     print(response)
     
-    # Search internet
-    results = await search_provider.search("latest blockchain news")
-    print(results)
 
 asyncio.run(main())
 ```
@@ -166,15 +160,6 @@ class ModelProvider:
     def get_connection_status(self) -> dict
 ```
 
-### SearchProvider
-
-Internet search provider using Tavily API.
-
-```python
-class SearchProvider:
-    def __init__(self, api_key: str)
-    async def search(self, query: str) -> dict
-```
 
 ## 🌐 Deployment
 
@@ -203,7 +188,6 @@ services:
     environment:
       - BLOCKCHAIN_RPC_URL=${BLOCKCHAIN_RPC_URL}
       - BLOCKCHAIN_PRIVATE_KEY=${BLOCKCHAIN_PRIVATE_KEY}
-      - TAVILY_API_KEY=${TAVILY_API_KEY}
       - CONTRACT_ADDRESS=${CONTRACT_ADDRESS}
       - NFT_ID=${NFT_ID}
 ```
@@ -299,7 +283,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Sentient Agent Framework](https://github.com/sentient-ai/agent-framework)
 - [Web3.py](https://github.com/ethereum/web3.py)
-- [Tavily API](https://tavily.com)
 
 ---
 
