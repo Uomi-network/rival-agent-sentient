@@ -10,7 +10,7 @@ from sentient_agent_framework import (
     Query,
     ResponseHandler)
 from typing import AsyncIterator
-
+import json
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -51,9 +51,6 @@ class RivalAgent(AbstractAgent):
         """Search the internet for information and process with blockchain AI."""
         try:
             # Search for information
-            await response_handler.emit_text_block(
-                "SEARCH", "🔍 Searching internet for results..."
-            )
             # Process search results with blockchain AI
             await response_handler.emit_text_block(
                 "PROCESSING", "🧠 Processing with blockchain AI agent..."
@@ -85,9 +82,9 @@ class RivalAgent(AbstractAgent):
     ) -> AsyncIterator[str]:
         """Process the search results using the blockchain AI model."""
         try:
-            process_query = prompt
+            logger.error(f"Processing search results with query: {prompt}")              
             
-            async for chunk in self._model_provider.query_stream(process_query):
+            async for chunk in self._model_provider.query_stream(prompt):
                 yield chunk
                 
         except Exception as e:
