@@ -41,8 +41,6 @@ def main():
         server = AuthenticatedServer(
             agent=agent,
             api_key=os.getenv("RIVAL_API_KEY"),  # Optional: will use env var if not provided
-            host="0.0.0.0",
-            port=8000
         )
         
         logger.info("Starting authenticated Rival Agent server...")
@@ -50,7 +48,10 @@ def main():
         logger.info("Use: curl -H 'Authorization: Bearer YOUR_API_KEY' http://localhost:8000/assist")
         
         # Run the server
-        server.run()
+        server.run(
+            host="0.0.0.0",
+            port=8000
+        )
         
     except Exception as e:
         logger.error(f"Failed to start authenticated Rival Agent: {e}")
