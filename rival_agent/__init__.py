@@ -9,11 +9,13 @@ Main Components:
 - RivalAgent: The main agent class
 - ModelProvider: Blockchain AI model provider
 - SearchProvider: Internet search provider
+- AuthenticatedServer: Server with API key authentication middleware
 """
 
 from .rival_agent import RivalAgent, create_agent, main
 from .providers import ModelProvider, SearchProvider
+from .auth_server import AuthenticatedServer
 
 __version__ = "1.0.0"
 __author__ = "Rival Agent Team"
-__all__ = ["RivalAgent", "create_agent", "main", "ModelProvider", "SearchProvider"]
+__all__ = ["RivalAgent", "create_agent", "main", "ModelProvider", "SearchProvider", "AuthenticatedServer"]
