@@ -3,6 +3,7 @@ import asyncio
 import json
 import time
 import os
+import re
 from typing import AsyncIterator, Optional, Dict, Any
 from dataclasses import dataclass
 import logging
@@ -36,6 +37,10 @@ class ModelProvider:
         
         # Request tracking
         self.pending_requests: Dict[str, Dict[str, Any]] = {}
+        
+        # Shared game state (replaces individual game state variables)
+        from ..shared_game_state import get_shared_game_state
+        self.shared_game_state = get_shared_game_state()
         
         # Event polling configuration
         self.polling_interval = 2.0  # seconds
@@ -303,8 +308,14 @@ class ModelProvider:
         
         if event_type == "NodeOutputReceived" and tx_hash in self.pending_requests:
             # Update request status with response
+            output_data = data.get("outputData", "")
+            if isinstance(output_data, bytes):
+                response = output_data.decode('utf-8')
+            else:
+                response = str(output_data)
+            
             self.pending_requests[tx_hash]["status"] = "completed"
-            self.pending_requests[tx_hash]["response"] = data["output_data"].decode('utf-8') if isinstance(data["output_data"], bytes) else str(data["output_data"])
+            self.pending_requests[tx_hash]["response"] = response
 
     async def _wait_for_transaction_receipt(self, tx_hash: str) -> Optional[Dict]:
         """Wait for transaction receipt and extract request ID"""
@@ -414,6 +425,11 @@ class ModelProvider:
     ) -> AsyncIterator[str]:
         """Submit query to blockchain via callAgent and yield the response in chunks."""
         
+        # Check if game is blocked
+        if self.shared_game_state.is_game_blocked():
+            yield self.get_game_blocked_message()
+            return
+        
         try:
             # Submit transaction
             tx_hash = await self._submit_transaction(query)
@@ -438,6 +454,19 @@ class ModelProvider:
                 # Mock mode
                 response = await self._wait_for_mock_result(tx_hash)
             
+            # Check for "uomi" in the response before streaming
+            if self._check_for_uomi(response):
+                self._block_game(response)
+                # Stream the response first
+                chunk_size = 20
+                for i in range(0, len(response), chunk_size):
+                    chunk = response[i:i + chunk_size]
+                    yield chunk
+                    await asyncio.sleep(0.1)  # Simulate streaming delay
+                # Then add the game blocked message
+                yield f"\n\n{self.get_game_blocked_message()}"
+                return
+            
             # Simulate streaming by yielding chunks
             chunk_size = 20
             for i in range(0, len(response), chunk_size):
@@ -454,6 +483,10 @@ class ModelProvider:
         query: str
     ) -> str:
         """Submit query to blockchain via callAgent and return the complete response."""
+        
+        # Check if game is blocked
+        if self.shared_game_state.is_game_blocked():
+            return self.get_game_blocked_message()
         
         try:
             # Submit transaction
@@ -476,6 +509,11 @@ class ModelProvider:
             else:
                 # Mock mode
                 response = await self._wait_for_mock_result(tx_hash)
+            
+            # Check for "uomi" in the response
+            if self._check_for_uomi(response):
+                self._block_game(response)
+                return f"{response}\n\n{self.get_game_blocked_message()}"
                 
             return response
             
@@ -702,3 +740,140 @@ class ModelProvider:
         except Exception as e:
             self.logger.error(f"Error listening for node output: {e}")
             raise
+
+    def _check_for_uomi(self, response: str) -> bool:
+        """Check if response contains 'uomi' as a complete word (case-insensitive)"""
+        # Use word boundaries to ensure 'uomi' is a complete word
+        pattern = r'\buomi\b'
+        return bool(re.search(pattern, response, re.IGNORECASE))
+    
+    def _block_game(self, response: str):
+        """Block the game when 'uomi' is detected"""
+        game_was_blocked = self.shared_game_state.block_game(response, "chat")
+        if game_was_blocked:
+            self.logger.info("Game has been blocked due to 'uomi' detection in chat")
+        else:
+            self.logger.info("Game was already blocked by another system")
+    
+    def is_game_blocked(self) -> bool:
+        """Check if the game is currently blocked"""
+        return self.shared_game_state.is_game_blocked()
+    
+    def get_game_blocked_message(self) -> str:
+        """Get the message to return when game is blocked"""
+        return self.shared_game_state.get_blocked_message()
+    
+    def set_winner_wallet(self, wallet_address: str) -> bool:
+        """Set the winner's wallet address"""
+        success = self.shared_game_state.set_winner_wallet(wallet_address)
+        if success:
+            self.logger.info(f"Winner wallet address set: {wallet_address}")
+        else:
+            self.logger.error(f"Failed to set winner wallet address: {wallet_address}")
+        return success
+    
+    async def send_prize(self, amount_wei: int = None) -> bool:
+        """Send prize to the winner's wallet"""
+        winner_info = self.shared_game_state.get_winner_info()
+        
+        if not winner_info or not winner_info.get("wallet_address"):
+            self.logger.error("Cannot send prize: game not blocked or wallet not provided")
+            return False
+        
+        if winner_info.get("prize_sent"):
+            self.logger.info("Prize already sent")
+            return True
+        
+        if not self.account:
+            self.logger.warning("No private key available - cannot send prize")
+            # Mark as sent in shared state
+            self.shared_game_state.mark_prize_sent(tx_hash="mock_tx", amount=amount_wei or 0)
+            return True
+        
+        try:
+            recipient = winner_info["wallet_address"]
+            amount = amount_wei or self.w3.to_wei(0.01, 'ether')  # Default 0.01 ETH
+            
+            # Build transaction
+            transaction = {
+                'to': recipient,
+                'value': amount,
+                'gas': 21000,
+                'gasPrice': await self._get_dynamic_gas_price(),
+                'nonce': self.w3.eth.get_transaction_count(self.wallet_address)
+            }
+            
+            # Sign and send transaction
+            signed_txn = self.w3.eth.account.sign_transaction(transaction, self.private_key)
+            tx_hash = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction)
+            
+            # Wait for confirmation
+            receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
+            
+            if receipt.status == 1:
+                # Mark as sent in shared state
+                self.shared_game_state.mark_prize_sent(tx_hash=tx_hash.hex(), amount=amount)
+                self.logger.info(f"Prize sent successfully: {tx_hash.hex()}")
+                return True
+            else:
+                self.logger.error(f"Prize transaction failed: {tx_hash.hex()}")
+                return False
+                
+        except Exception as e:
+            self.logger.error(f"Error sending prize: {e}")
+            return False
+    
+    def get_game_status(self) -> Dict[str, Any]:
+        """Get current game status"""
+        return self.shared_game_state.get_game_state()
+    
+    def process_wallet_input(self, user_input: str) -> Dict[str, Any]:
+        """Process user input to extract wallet address and send prize if valid"""
+        if not self.shared_game_state.is_game_blocked():
+            return {"success": False, "message": "Game is not blocked"}
+        
+        # Try to extract wallet address from input
+        # Look for Ethereum address pattern (0x followed by 40 hex chars)
+        wallet_pattern = r'0x[a-fA-F0-9]{40}'
+        matches = re.findall(wallet_pattern, user_input)
+        
+        if not matches:
+            return {"success": False, "message": "No valid wallet address found in input"}
+        
+        wallet_address = matches[0]  # Take the first match
+        
+        # Set the wallet address
+        if self.set_winner_wallet(wallet_address):
+            return {
+                "success": True, 
+                "message": f"Wallet address {wallet_address} has been set. Prize will be sent shortly.",
+                "wallet_address": wallet_address,
+                "next_step": "send_prize"
+            }
+        else:
+            return {"success": False, "message": "Failed to set wallet address"}
+    
+    async def process_and_send_prize(self, user_input: str, prize_amount_wei: int = None) -> Dict[str, Any]:
+        """Process wallet input and automatically send prize"""
+        wallet_result = self.process_wallet_input(user_input)
+        
+        if not wallet_result["success"]:
+            return wallet_result
+        
+        # Send the prize
+        prize_sent = await self.send_prize(prize_amount_wei)
+        
+        if prize_sent:
+            return {
+                "success": True,
+                "message": f"Prize sent successfully to {wallet_result['wallet_address']}!",
+                "wallet_address": wallet_result['wallet_address'],
+                "prize_sent": True
+            }
+        else:
+            return {
+                "success": False,
+                "message": "Failed to send prize. Please try again or contact support.",
+                "wallet_address": wallet_result['wallet_address'],
+                "prize_sent": False
+            }
